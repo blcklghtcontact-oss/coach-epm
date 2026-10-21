@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>*{box-sizing:border-box}body{margin:0}</style></head><body>
+<title>Coach EPM Anthropic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-screen chat app — header, scrolling conversation, topic chips + composer pinned below */
+:root{
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#16201D; --muted:#5B6B66; --line:#DCE3E0;
+  --accent:#0E7C6B; --accent-ink:#FFFFFF; --accent-soft:#E2F1EE;
+  --ok:#1F8A4C; --warn:#B7791F; --bad:#C0392B;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1513; --surface:#18211E; --ink:#E6EEEB; --muted:#93A59F; --line:#2A3632;
+  --accent:#3FC2A9; --accent-ink:#06211B; --accent-soft:#163A33;
+  --ok:#4CC27E; --warn:#E3A848; --bad:#EF6F61; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F1513; --surface:#18211E; --ink:#E6EEEB; --muted:#93A59F; --line:#2A3632;
+  --accent:#3FC2A9; --accent-ink:#06211B; --accent-soft:#163A33;
+  --ok:#4CC27E; --warn:#E3A848; --bad:#EF6F61; color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.app{height:100%;display:flex;flex-direction:column;max-width:860px;margin:0 auto;padding-inline:16px}
+header{display:flex;align-items:center;gap:12px;padding-block:16px 12px;border-bottom:1px solid var(--line)}
+.mark{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--mono);font-size:13px;flex:none}
+header h1{font-family:var(--display);font-weight:700;font-size:20px;margin:0;line-height:1.2;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:13px}
+.status{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)}
+#log{flex:1;overflow-y:auto;padding-block:20px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:min(680px,92%);min-width:0}
+.msg.bot{align-self:flex-start}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);padding:10px 14px;border-radius:14px 14px 4px 14px}
+.bubble{background:var(--surface);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:14px 16px}
+.who{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 4px 2px}
+.bubble h3{font-family:var(--display);font-weight:700;font-size:17px;margin:0 0 6px}
+.bubble h4{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+.bubble p{margin:0 0 8px}
+.bubble ul,.bubble ol{margin:0 0 8px;padding-left:20px}
+.bubble li{margin-bottom:3px}
+.bubble p:last-child,.bubble ul:last-child,.bubble ol:last-child{margin-bottom:0}
+.tbl{overflow-x:auto;margin:8px 0;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);min-width:0}
+.tile .k{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--mono);font-size:18px}
+.chip-s{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid currentColor}
+.s-ok{color:var(--ok)}.s-warn{color:var(--warn)}.s-bad{color:var(--bad)}
+.note{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin-top:8px}
+.thinking{color:var(--muted);font-style:italic}
+footer{border-top:1px solid var(--line);padding-block:12px 16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:2px}
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.nav button{font:inherit;font-size:13px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--ink);padding:6px 12px;border-radius:99px;cursor:pointer}
+.nav button:hover{background:var(--accent);color:var(--accent-ink)}
+.chips button{flex:none;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:99px;cursor:pointer}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+.chips button .n{font-family:var(--mono);color:var(--accent);margin-right:4px}
+form{display:flex;gap:8px}
+#q{flex:1;min-width:0;font:inherit;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+#q:focus{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.aibar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.aibar .btn{padding:7px 12px;font-size:13px}
+.prog{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.hint{font-size:12px;color:var(--muted);margin:0}
+@media (max-width:520px){.status span{display:none} header p{display:none}}
+@media (prefers-reduced-motion:no-preference){.msg{animation:in .25s ease-out}@keyframes in{from{transform:translateY(4px)}to{transform:none}}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="mark" aria-hidden="true">EPM</div>
+    <div>
+      <h1>Coach EPM para líderes de Anthropic</h1>
+      <p>Evaluación del desempeño y retroalimentación sin conflicto</p>
+    </div>
+    <div class="status" id="status"><i class="dot on" id="dot"></i><span id="statusTxt">En línea</span></div>
+  </header>
+
+  <main id="log" aria-live="polite"></main>
+
+  <footer>
+    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local (Llama 3.2)</button><span class="hint" id="aiTxt">Corre en tu dispositivo, gratis y sin cuenta. Se descarga una vez (~700 MB, mejor con Wi-Fi).</span></div>
+    <div class="chips" id="chips" aria-label="Temas del tutorial"></div>
+    <form id="f">
+      <input id="q" autocomplete="off" placeholder="Pregunta lo que quieras sobre la evaluación…" aria-label="Escribe tu pregunta">
+      <button class="btn" id="send" type="submit">Enviar</button>
+      <button class="btn ghost" id="stop" type="button" hidden>Detener</button>
+    </form>
+    <p class="hint" id="hint">Toca un tema o escribe tu pregunta sobre la evaluación, el EPM o la retroalimentación.</p>
+  </footer>
+</div>
+
+<script>
+const TOPICS = [
+{ id:"bienvenida", n:1, label:"Bienvenida", keys:["hola","bienven","inicio","empez","quien eres","qué eres","que eres"],
+html:`<h3>Bienvenido, líder</h3>
+<p>Soy tu coach de evaluación del desempeño. Estoy aquí para ayudarte, como mando medio o gerente de Anthropic, a evaluar a tu equipo con datos objetivos del sistema <b>EPM</b> (Electronic Performance Monitoring) y a convertir esa evaluación en una conversación de retroalimentación que sume, incluso cuando hay desacuerdo.</p>
+<h4>En este tutorial vas a ver</h4>
+<ol><li>Bienvenida y propósito</li><li>El puesto que vas a evaluar</li><li>Los KPIs, su tablero y cómo los mide el EPM</li><li>Cómo planear la entrevista de retroalimentación</li><li>Tips para una retroalimentación exitosa y manejo positivo del conflicto</li></ol>
+<p>Una idea antes de empezar: en Anthropic el EPM existe para <b>dar claridad y apoyo</b>, no para vigilar. Los datos abren la conversación; no la sustituyen.</p>
+<p class="note">Sigue los temas en orden con los botones de abajo, o escríbeme tu duda.</p>`},
+
+{ id:"puesto", n:2, label:"El puesto", keys:["puesto","rol","ingenier","responsab","perfil","competenc","función","funcion"],
+html:`<h3>Puesto a evaluar: Ingeniero/a de Software II</h3>
+<div class="tbl"><table>
+<tr><th>Área</th><td>Ingeniería de Producto (apps de Claude)</td></tr>
+<tr><th>Reporta a</th><td>Engineering Manager (tú, como mando medio)</td></tr>
+<tr><th>Modalidad</th><td>Híbrida, con laptop corporativa</td></tr>
+<tr><th>Objetivo del puesto</th><td>Diseñar, construir y mantener funciones del producto de forma segura, confiable y a tiempo, colaborando con su equipo mediante revisiones de código y guardias (on-call).</td></tr>
+</table></div>
+<h4>Responsabilidades clave</h4>
+<ul><li>Entregar los compromisos del sprint con código de calidad y probado.</li><li>Revisar el código de sus compañeros a tiempo y con comentarios útiles.</li><li>Atender incidentes durante su guardia y documentar la causa raíz.</li><li>Cuidar la seguridad y privacidad de los datos de usuarios en todo lo que construye.</li><li>Documentar y compartir conocimiento con el equipo.</li></ul>
+<h4>Competencias que se observan</h4>
+<ul><li><b>Técnicas:</b> calidad de código, pruebas, diseño de sistemas.</li><li><b>Conductuales:</b> colaboración, comunicación clara, apertura a la retroalimentación, responsabilidad.</li></ul>`},
+
+{ id:"kpis", n:3, label:"KPIs y tablero EPM", keys:["kpi","indicador","tablero","dashboard","medir","métrica","metrica","epm","monitoreo","monitor","datos","privacidad"],
+html:`<h3>KPIs, tablero y relación con EPM</h3>
+<p>El desempeño se mide con 6 KPIs. Cada uno tiene una meta, una fuente de datos del EPM y un peso en la calificación final.</p>
+<div class="tbl"><table>
+<tr><th>KPI</th><th>Meta</th><th>Cómo lo obtiene el EPM</th><th>Peso</th></tr>
+<tr><td>Tiempo de ciclo de cambios (abrir → integrar)</td><td class="num">≤ 2 días</td><td>Integración con el repositorio de código (GitHub)</td><td class="num">20%</td></tr>
+<tr><td>Defectos que llegan a producción</td><td class="num">≤ 5%</td><td>Monitor de errores e incidentes ligados a cada cambio</td><td class="num">20%</td></tr>
+<tr><td>Cumplimiento del sprint</td><td class="num">≥ 85%</td><td>Herramienta de tickets (Jira/Linear): comprometido vs. terminado</td><td class="num">20%</td></tr>
+<tr><td>Revisiones de código a tiempo</td><td class="num">≤ 24 h</td><td>Repositorio: tiempo de respuesta a solicitudes de revisión</td><td class="num">15%</td></tr>
+<tr><td>Respuesta a incidentes en guardia</td><td class="num">≤ 15 min</td><td>Sistema de alertas (PagerDuty): tiempo en reconocer la alerta</td><td class="num">15%</td></tr>
+<tr><td>Tiempo de enfoque</td><td class="num">≥ 3 h/día</td><td>Agente EPM en la laptop: tiempo en herramientas de trabajo (IDE, terminal) en bloques sin interrupción</td><td class="num">10%</td></tr>
+</table></div>
+<h4>Así se ve el tablero (ejemplo)</h4>
+<div class="dash">
+<div class="tile"><div class="k">Ciclo de cambios</div><div class="v">1.6 d</div><span class="chip-s s-ok">En meta</span></div>
+<div class="tile"><div class="k">Defectos a prod.</div><div class="v">7%</div><span class="chip-s s-bad">Fuera</span></div>
+<div class="tile"><div class="k">Sprint</div><div class="v">82%</div><span class="chip-s s-warn">Cerca</span></div>
+<div class="tile"><div class="k">Revisiones</div><div class="v">18 h</div><span class="chip-s s-ok">En meta</span></div>
+<div class="tile"><div class="k">Guardia</div><div class="v">11 min</div><span class="chip-s s-ok">En meta</span></div>
+<div class="tile"><div class="k">Enfoque</div><div class="v">2.4 h</div><span class="chip-s s-warn">Cerca</span></div>
+</div>
+<p class="note">Datos de ejemplo. El tablero se actualiza cada semana, usa semáforo (verde en meta, amarillo a menos de 10% de la meta, rojo fuera) y muestra la tendencia de las últimas 6 semanas.</p>
+<h4>Cómo funciona el EPM</h4>
+<ul><li>Un <b>agente instalado en la laptop corporativa</b> registra qué aplicaciones se usan y el tiempo activo, sólo en horario laboral.</li><li><b>Integraciones</b> con el repositorio, los tickets y el sistema de alertas aportan los demás KPIs de forma automática.</li><li>Los datos se <b>agregan por semana</b>; el líder ve tendencias, no minuto a minuto.</li></ul>
+<h4>Reglas de uso responsable</h4>
+<ul><li>Aviso previo por escrito y consentimiento del colaborador.</li><li>Sin cámara, micrófono, capturas de pantalla ni registro de lo que se teclea.</li><li>Nada fuera de la jornada laboral ni en dispositivos personales.</li><li>Cada colaborador ve su propio tablero, igual que su líder.</li><li>Cumplimiento con la ley mexicana de protección de datos personales y la NOM-037-STPS (teletrabajo).</li></ul>`},
+
+{ id:"planear", n:4, label:"Planear la entrevista", keys:["planear","plan","entrevista","reunión","reunion","preparar","agenda","antes"],
+html:`<h3>Cómo planear la entrevista de retroalimentación</h3>
+<h4>Antes (una semana previa)</h4>
+<ol><li>Revisa el tablero de las últimas 6 semanas y elige <b>2 o 3 temas</b>: al menos un logro y una área de mejora.</li><li>Busca el contexto detrás de los números: un incidente grande, un cambio de prioridades o una ausencia explican muchos datos.</li><li>Pide al colaborador su <b>autoevaluación</b> 48 horas antes, con acceso a su propio tablero.</li><li>Agenda <b>45 minutos</b> en un espacio privado o una videollamada sin interrupciones. Nunca justo después de un incidente.</li><li>Anticipa el posible desacuerdo: ¿qué dato podría sentirse injusto? Prepara cómo escucharlo.</li></ol>
+<h4>Estructura sugerida de la reunión</h4>
+<div class="tbl"><table>
+<tr><th>Momento</th><th>Tiempo</th><th>Qué haces</th></tr>
+<tr><td>Apertura</td><td class="num">5 min</td><td>Explica el propósito: crecer juntos, no juzgar.</td></tr>
+<tr><td>Autoevaluación</td><td class="num">10 min</td><td>Él o ella habla primero; tú escuchas y tomas nota.</td></tr>
+<tr><td>Datos del tablero</td><td class="num">10 min</td><td>Comparte logros y áreas de mejora con hechos concretos.</td></tr>
+<tr><td>Acuerdos</td><td class="num">15 min</td><td>Construyan juntos 2 o 3 metas SMART y el apoyo que darás.</td></tr>
+<tr><td>Cierre</td><td class="num">5 min</td><td>Resume, agradece y agenda el seguimiento a 30 días.</td></tr>
+</table></div>`},
+
+{ id:"tips", n:5, label:"Tips y manejo de conflicto", keys:["tip","consejo","conflict","desacuerdo","molest","enoj","defens","retroaliment","feedback","sbi","difícil","dificil"],
+html:`<h3>Tips para una retroalimentación exitosa</h3>
+<h4>Usa el modelo SCI</h4>
+<p><b>Situación</b> (cuándo y dónde), <b>Conducta</b> (qué se observó, con dato) e <b>Impacto</b> (qué efecto tuvo).</p>
+<p class="note">Ejemplo: "En el sprint 14 (situación), tres cambios llegaron a producción con errores que no tenían pruebas (conducta). El equipo pasó dos días corrigiendo en lugar de avanzar (impacto). ¿Qué pasó desde tu lado?"</p>
+<h4>Cuida la conversación</h4>
+<ul><li>Habla de conductas y resultados, nunca de la persona.</li><li>Pregunta antes de concluir: el dato dice qué pasó, no por qué.</li><li>Reconoce logros con la misma precisión que las áreas de mejora.</li><li>No uses el EPM como amenaza ni como prueba de "te estoy vigilando".</li></ul>
+<h4>Si aparece el conflicto, conviértelo en algo positivo</h4>
+<ol><li><b>Haz una pausa</b> y baja el tono; no defiendas el dato de inmediato.</li><li><b>Reformula</b> lo que escuchaste: "Entiendo que sientes que la métrica de enfoque no refleja tus reuniones de diseño".</li><li><b>Valida la emoción</b> sin ceder en lo que importa.</li><li><b>Busca el interés común</b> (estilo colaborativo): los dos quieren un producto confiable y una evaluación justa.</li><li><b>Acuerden una solución</b>: ajustar cómo se mide, cambiar una práctica o pedir apoyo.</li><li>Si la tensión sigue, <b>agenda una segunda conversación</b> en lugar de forzar un cierre.</li></ol>
+<h4>Después</h4>
+<ul><li>Envía por escrito los acuerdos y metas en menos de 24 horas.</li><li>Da seguimiento a los 30 días con el tablero actualizado.</li></ul>`}
+];
+
+const log = document.getElementById("log");
+const chips = document.getElementById("chips");
+const form = document.getElementById("f");
+const q = document.getElementById("q");
+const sendBtn = document.getElementById("send");
+const stopBtn = document.getElementById("stop");
+const hint = document.getElementById("hint");
+
+function addMsg(role, html){
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + role;
+  if(role === "bot"){
+    wrap.innerHTML = '<p class="who">Coach EPM</p><div class="bubble"></div>';
+    wrap.querySelector(".bubble").innerHTML = html;
+  } else { wrap.textContent = html; }
+  log.appendChild(wrap);
+  wrap.scrollIntoView({block:"start", behavior:"smooth"});
+  return wrap;
+}
+
+TOPICS.forEach(t=>{
+  const b = document.createElement("button");
+  b.type = "button";
+  b.innerHTML = '<span class="n">' + t.n + '</span>' + t.label;
+  b.onclick = ()=>{ addMsg("user", t.n + ". " + t.label); showTopic(t); };
+  chips.appendChild(b);
+});
+
+function plain(html){ const d=document.createElement("div"); d.innerHTML=html; return d.innerText.replace(/\n{3,}/g,"\n\n").trim(); }
+
+function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function md(src){
+  const lines = esc(src).split("\n"); let out=""; let list=null;
+  const inline = s=>s.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\*(.+?)\*/g,"<i>$1</i>");
+  const close = ()=>{ if(list){ out += "</"+list+">"; list=null; } };
+  for(const raw of lines){
+    const l = raw.trim();
+    let m;
+    if(!l){ close(); continue; }
+    if((m = l.match(/^#{1,4}\s+(.*)/))){ close(); out += "<h4>"+inline(m[1])+"</h4>"; }
+    else if((m = l.match(/^[-*•]\s+(.*)/))){ if(list!=="ul"){ close(); out+="<ul>"; list="ul"; } out += "<li>"+inline(m[1])+"</li>"; }
+    else if((m = l.match(/^\d+[.)]\s+(.*)/))){ if(list!=="ol"){ close(); out+="<ol>"; list="ol"; } out += "<li>"+inline(m[1])+"</li>"; }
+    else { close(); out += "<p>"+inline(l)+"</p>"; }
+  }
+  close(); return out;
+}
+
+const FAQ = [
+{ keys:["que es epm","que es el epm","que significa epm","electronic performance","monitoreo electronico","como funciona el epm","como funciona epm"],
+html:`<h3>¿Qué es el EPM?</h3><p><b>EPM (Electronic Performance Monitoring)</b> es el uso de herramientas digitales para medir el desempeño de forma automática y objetiva. En este tutorial, el EPM junta datos de:</p><ul><li>El <b>repositorio de código</b> (ciclo de cambios, revisiones).</li><li>La <b>herramienta de tickets</b> (cumplimiento del sprint).</li><li>El <b>sistema de alertas</b> (respuesta en guardia).</li><li>Un <b>agente en la laptop corporativa</b> (tiempo de enfoque, sólo en horario laboral).</li></ul><p>El líder ve <b>tendencias semanales</b>, no minuto a minuto. Los datos abren la conversación; no la sustituyen.</p>`, next:"kpis"},
+{ keys:["ventaja","beneficio","para que sirve","por que usar","por que se usa","pros"],
+html:`<h3>Ventajas del EPM</h3><ul><li><b>Objetividad:</b> la evaluación se basa en datos, no en la impresión del jefe (reduce el efecto halo y la recencia).</li><li><b>Retroalimentación oportuna:</b> el tablero semanal permite corregir a tiempo, no hasta fin de año.</li><li><b>Transparencia:</b> el colaborador ve su propio tablero, igual que su líder.</li><li><b>Reconocimiento justo:</b> los logros quedan documentados.</li><li><b>Detección de apoyo:</b> una caída en los datos puede señalar carga excesiva o bloqueos.</li></ul>`, next:"kpis"},
+{ keys:["desventaja","riesgo","contra","problema del epm","vigila","vigilancia","espiar","espia","estres","desconfianza"],
+html:`<h3>Riesgos del EPM y cómo se controlan</h3><ul><li><b>Sensación de vigilancia y estrés</b> → aviso previo, consentimiento y propósito de apoyo, no de control.</li><li><b>Invasión de la privacidad</b> → sin cámara, micrófono, capturas ni registro de teclas; sólo horario laboral y laptop corporativa.</li><li><b>Medir cantidad y no calidad</b> → los KPIs combinan velocidad con calidad (defectos) y colaboración (revisiones).</li><li><b>Datos sin contexto</b> → el líder siempre pregunta el porqué antes de concluir.</li></ul>`, next:"kpis"},
+{ keys:["monitoreando","lo estamos monitoreando","como le explico","avisarle","decirle que","privacidad","ley","legal","consentimiento","nom-037","nom 037","proteccion de datos","quien ve","quien puede ver","acceso a los datos"],
+html:`<h3>Privacidad y uso responsable</h3><ul><li>Aviso previo por escrito y <b>consentimiento</b> del colaborador.</li><li>Sin cámara, micrófono, capturas de pantalla ni registro de teclado.</li><li>Sólo en <b>horario laboral</b> y en la <b>laptop corporativa</b>; nunca en dispositivos personales.</li><li>Datos agregados por semana. Los ven <b>el colaborador y su líder</b>.</li><li>Cumplimiento con la ley mexicana de protección de datos personales y la <b>NOM-037-STPS</b> (teletrabajo).</li></ul>`, next:"planear"},
+{ keys:["calificacion","calcular","calculo","ponderacion","pondera","peso","porcentaje final","puntaje","resultado final"],
+html:`<h3>Cómo combinar los KPIs (ejemplo)</h3><p>Cada KPI tiene un peso: ciclo 20%, defectos 20%, sprint 20%, revisiones 15%, guardia 15%, enfoque 10%. Una forma sencilla: calificar cada KPI según qué tanto alcanzó la meta (máximo 100) y multiplicar por su peso.</p><p>Con el tablero de ejemplo: ciclo 100, defectos 71 (5 ÷ 7), sprint 96 (82 ÷ 85), revisiones 100, guardia 100, enfoque 80 (2.4 ÷ 3).</p><p><b>Total ≈ 20 + 14.3 + 19.3 + 15 + 15 + 8 = 91.6 / 100.</b></p><p class="note">Es un ejemplo para practicar. El número sirve para ordenar la conversación; lo importante son los dos temas a mejorar (defectos y enfoque) y el porqué.</p>`, next:"planear"},
+{ keys:["semaforo","verde","amarillo","rojo","color"],
+html:`<h3>Semáforo del tablero</h3><ul><li><span class="chip-s s-ok">Verde</span> en meta.</li><li><span class="chip-s s-warn">Amarillo</span> a menos de 10% de la meta.</li><li><span class="chip-s s-bad">Rojo</span> fuera de la meta.</li></ul><p>El tablero se actualiza cada semana y muestra la tendencia de 6 semanas: un rojo aislado pesa menos que una tendencia que empeora.</p>`, next:"kpis"},
+{ keys:["defecto","errores en produccion","bug","fuera de meta","kpi en rojo","no cumple","bajo","mal desempeno","bajo desempeno"],
+html:`<h3>Si un KPI está fuera de meta</h3><ol><li><b>Busca el contexto</b>: ¿hubo un incidente grande, cambio de prioridades o presión de entrega?</li><li><b>Diagnostica</b>: ¿falta capacidad (habilidad, tiempo) o motivación?</li><li><b>Habla con SCI</b>: "En el sprint 14, tres cambios llegaron sin pruebas; el equipo pasó dos días corrigiendo".</li><li><b>Acuerden una meta SMART</b>, por ejemplo: bajar los defectos a producción de 7% a 5% en 6 semanas, con pruebas en el 100% de los cambios.</li><li><b>Define tu apoyo</b> (pareja de revisión, capacitación en pruebas) y <b>da seguimiento</b> a 30 días.</li></ol><p>Si no mejora tras el seguimiento, se formaliza un <b>plan de mejora</b> con fechas.</p>`, next:"tips"},
+{ keys:["smart","meta","objetivo","acuerdo","compromiso"],
+html:`<h3>Metas SMART para el puesto</h3><p><b>S</b>pecífica, <b>M</b>edible, <b>A</b>lcanzable, <b>R</b>elevante y con <b>T</b>iempo.</p><ul><li>Bajar los defectos a producción de 7% a ≤ 5% en las próximas 6 semanas.</li><li>Subir el cumplimiento del sprint de 82% a ≥ 85% en los dos sprints siguientes.</li><li>Lograr ≥ 3 h diarias de enfoque bloqueando 2 mañanas sin reuniones durante un mes.</li></ul><p>Cada meta lleva el <b>apoyo del líder</b> y una <b>fecha de seguimiento</b>.</p>`, next:"tips"},
+{ keys:["sci","sbi","situacion conducta impacto","como dar retro","como doy retro","como dar feedback","modelo de retro"],
+html:`<h3>Modelo SCI</h3><ul><li><b>Situación:</b> cuándo y dónde.</li><li><b>Conducta:</b> qué se observó, con dato.</li><li><b>Impacto:</b> qué efecto tuvo.</li></ul><p>Termina con una pregunta abierta para escuchar su versión.</p><p class="note">"En el sprint 14 (situación), tres cambios llegaron a producción sin pruebas (conducta). El equipo pasó dos días corrigiendo (impacto). ¿Qué pasó desde tu lado?"</p>`, next:"tips"},
+{ keys:["no esta de acuerdo","no estoy de acuerdo","desacuerdo","injusto","defensiva","se defiende","no acepta","niega","discute","reclama"],
+html:`<h3>Si el colaborador no está de acuerdo con un dato</h3><ol><li><b>No defiendas el dato de inmediato</b>; haz una pausa.</li><li><b>Reformula</b>: "Entiendo que sientes que la métrica de enfoque no refleja tus reuniones de diseño".</li><li><b>Pregunta qué falta</b> en el dato: contexto, carga, bloqueos.</li><li><b>Busca el interés común</b> (estilo <b>colaborar</b>): una evaluación justa y un producto confiable.</li><li><b>Acuerden</b> ajustar la medición, cambiar una práctica o pedir apoyo.</li><li>Si sigue la tensión, <b>agenda una segunda conversación</b>.</li></ol>`, next:"tips"},
+{ keys:["enoja","enojo","molesto","molesta","grita","llora","llorar","triste","emocion","altera"],
+html:`<h3>Si la conversación se pone emocional</h3><ul><li>Baja el ritmo y el tono; deja que termine de hablar.</li><li><b>Valida la emoción</b>: "Veo que esto te preocupa, y es válido".</li><li>Ofrece una pausa o retomar otro día; no fuerces el cierre.</li><li>Regresa a hechos y al futuro: "¿Qué necesitarías para que esto mejore?"</li><li>Nunca uses el EPM como amenaza.</li></ul>`, next:"tips"},
+{ keys:["thomas","kilmann","estilos de conflicto","estilo de conflicto","colaborar","competir","evitar","complacer","comprometer"],
+html:`<h3>Estilos de manejo de conflicto (Thomas-Kilmann)</h3><ul><li><b>Colaborar</b> (asertivo y cooperativo): el recomendado aquí; busca una solución ganar-ganar.</li><li><b>Comprometer</b>: cada parte cede algo; útil si hay prisa.</li><li><b>Competir</b>: imponer; sólo para temas no negociables (por ejemplo, seguridad de datos).</li><li><b>Complacer</b>: ceder para cuidar la relación.</li><li><b>Evitar</b>: posponer; útil sólo para enfriar los ánimos y retomar.</li></ul>`, next:"tips"},
+{ keys:["alto desempeno","buen desempeno","reconocer","reconocimiento","felicitar","logro"],
+html:`<h3>Cómo reconocer el buen desempeño</h3><ul><li>Sé tan <b>específico</b> con los logros como con las áreas de mejora: "Tus revisiones en 18 h desbloquearon al equipo en el sprint 15".</li><li>Conecta el logro con su <b>impacto</b> en el equipo o en los usuarios.</li><li>Ofrece <b>crecimiento</b>: un reto nuevo, mentoría o visibilidad.</li><li>Déjalo por escrito en los acuerdos.</li></ul>`, next:"tips"},
+{ keys:["autoevaluacion","autoevaluar","self"],
+html:`<h3>Autoevaluación</h3><p>Pídela <b>48 horas antes</b>, con acceso a su propio tablero. En la reunión el colaborador habla primero (10 min) y tú escuchas y tomas nota. Así la conversación empieza desde su visión y baja la defensividad.</p>`, next:"planear"},
+{ keys:["seguimiento","despues de la reunion","30 dias","por escrito"],
+html:`<h3>Seguimiento</h3><ul><li>Envía por escrito los acuerdos y metas en <b>menos de 24 horas</b>.</li><li>Revisa el avance a los <b>30 días</b> con el tablero actualizado.</li><li>Reconoce el avance y ajusta las metas si cambió el contexto.</li></ul>`, next:"tips"},
+{ keys:["error del evaluador","errores del evaluador","halo","indulgencia","tendencia central","recencia","sesgo"],
+html:`<h3>Errores del evaluador que el EPM ayuda a evitar</h3><ul><li><b>Halo:</b> un rasgo contamina toda la evaluación.</li><li><b>Indulgencia o severidad:</b> calificar a todos alto o bajo.</li><li><b>Tendencia central:</b> poner a todos en el promedio.</li><li><b>Recencia:</b> recordar sólo las últimas semanas (el tablero muestra 6 semanas).</li><li><b>Similitud:</b> calificar mejor a quien se parece a ti.</li></ul><p>Aun con datos, revisa el contexto: el EPM no elimina el juicio del líder.</p>`, next:"tips"},
+{ keys:["enfoque","reuniones","tiempo de enfoque","no refleja"],
+html:`<h3>Tiempo de enfoque</h3><p>Mide horas en herramientas de trabajo (IDE, terminal) en bloques sin interrupción; la meta es ≥ 3 h/día y pesa sólo 10%.</p><p>Si el colaborador dice que no refleja su trabajo (por ejemplo, reuniones de diseño), <b>escúchalo</b>: puede ser una señal de exceso de reuniones. Una solución típica es bloquear mañanas sin juntas.</p>`, next:"tips"},
+{ keys:["que no hacer","que no debo","evitar decir","errores comunes","no hacer"],
+html:`<h3>Lo que no debes hacer</h3><ul><li>Hablar de la persona en lugar de la conducta ("eres descuidado").</li><li>Usar el EPM como amenaza o como prueba de que lo vigilas.</li><li>Concluir sin preguntar el porqué del dato.</li><li>Dar la retroalimentación justo después de un incidente o en público.</li><li>Cerrar sin metas, apoyo ni fecha de seguimiento.</li></ul>`, next:"tips"},
+{ keys:["cuanto dura","duracion","45 minutos","estructura de la reunion","agenda de la reunion","como empiezo","como abrir","frase","apertura"],
+html:`<h3>Estructura de la reunión (45 min)</h3><ol><li><b>Apertura (5 min):</b> "El objetivo de hoy es ver juntos qué va bien y en qué te puedo apoyar".</li><li><b>Autoevaluación (10 min):</b> habla el colaborador.</li><li><b>Datos del tablero (10 min):</b> logros y áreas de mejora con hechos.</li><li><b>Acuerdos (15 min):</b> 2 o 3 metas SMART y tu apoyo.</li><li><b>Cierre (5 min):</b> resumen, agradecimiento y seguimiento a 30 días.</li></ol>`, next:"tips"},
+{ keys:["remoto","videollamada","virtual","hibrid","en linea"],
+html:`<h3>Si la reunión es por videollamada</h3><ul><li>Cámara encendida para ambos y un espacio privado sin interrupciones.</li><li>Comparte el tablero en pantalla para ver los mismos datos.</li><li>Haz más pausas y preguntas: es más difícil leer las emociones.</li><li>Envía los acuerdos por escrito al terminar.</li></ul>`, next:"tips"}
+];
+
+const KB = TOPICS.map(t=> "## " + t.n + ". " + t.label + "\n" + plain(t.html)).join("\n\n")
+  + "\n\n## Preguntas frecuentes\n" + FAQ.map(f=>plain(f.html)).join("\n\n");
+const RULES = `Eres "Coach EPM", un chatbot de capacitación para líderes (mandos medios y gerentes) de la empresa Anthropic. Tu tema es la evaluación del desempeño del puesto Ingeniero/a de Software II usando un sistema EPM (Electronic Performance Monitoring) y cómo dar retroalimentación manejando el conflicto de forma positiva.
+
+Reglas:
+- Responde siempre en español, con tono cálido, profesional y práctico.
+- Basa tus respuestas en el contenido del tutorial de abajo; puedes ampliarlo con buenas prácticas de recursos humanos, pero no contradigas las metas, KPIs ni reglas de uso del EPM.
+- Respuestas breves: máximo 180 palabras. Usa listas cortas cuando ayuden. Formato: texto plano con **negritas** y listas con guiones; sin tablas.
+- Defiende siempre el uso ético del EPM: transparencia, consentimiento, nada de cámara, micrófono, capturas ni teclado, sólo horario laboral.
+- Uso estricto: sólo respondes sobre la evaluación del desempeño de este puesto con EPM, los KPIs, la entrevista de retroalimentación y el manejo del conflicto. Si te preguntan algo ajeno (otras materias, tareas, chistes, código, temas personales), no lo respondas: di en una frase que sólo ayudas con este tutorial y sugiere uno de los 5 temas.
+- Cuando sea útil, termina sugiriendo el siguiente tema del tutorial.
+
+Contenido del tutorial:
+${KB}`;
+
+const turns = [];
+let sample = null, ctl = null, busy = false;
+
+let lastTopic = 0;
+function norm(s){ return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[¿?¡!.,;:()"']/g," ").replace(/\s+/g," ").trim(); }
+function navHtml(nextId){
+  const i = TOPICS.findIndex(t=>t.id===nextId);
+  const nxt = i>=0 ? TOPICS[i] : null;
+  return '<div class="nav">' + (nxt ? '<button type="button" data-topic="'+nxt.id+'">Siguiente: '+nxt.n+'. '+nxt.label+' →</button>' : '')
+    + '<button type="button" data-menu="1">Ver todos los temas</button></div>';
+}
+function showTopic(t, record=true){
+  lastTopic = t.n;
+  const nxt = TOPICS[t.n] ? TOPICS[t.n].id : null;
+  addMsg("bot", t.html + (nxt ? navHtml(nxt) : '<p class="note">Terminaste el tutorial. Escríbeme cualquier duda sobre la evaluación, la entrevista o el conflicto.</p>' + navHtml(null)));
+  if(record) turns.push({role:"user",content:t.label},{role:"assistant",content:plain(t.html)});
+}
+function menuHtml(intro){
+  return '<p>'+intro+'</p><div class="nav">' + TOPICS.map(x=>'<button type="button" data-topic="'+x.id+'">'+x.n+'. '+x.label+'</button>').join("") + '</div>'
+   + '<h4>También puedes preguntarme, por ejemplo</h4><div class="nav">'
+   + ["¿Qué es el EPM?","¿Cómo se calcula la calificación?","¿Qué hago si no está de acuerdo?","Ejemplo de meta SMART","¿Qué no debo hacer?"].map(x=>'<button type="button" data-ask="'+x+'">'+x+'</button>').join("") + '</div>';
+}
+
+// ---- Búsqueda abierta en todo el contenido (sin IA, sin costo) ----
+const STOP = new Set("a al algo algun alguna como con cual cuales cuando de del el ella ellos en entre es esa ese eso esta este esto estos fue ha hay la las le les lo los mas me mi mis muy no nos o para pero por que quien se si sin sobre son su sus te tiene tu tus un una uno unos y ya yo puedo debo hago hacer hace tengo quiero saber dime explica explicame cual cuando donde porque pues entonces bien mal ser estar".split(" "));
+const SYN = {jefe:"lider",jefes:"lideres",gerente:"lider",manager:"lider",empleado:"colaborador",empleados:"colaboradores",trabajador:"colaborador",trabajadores:"colaboradores",feedback:"retroalimentacion",retro:"retroalimentacion",kpis:"kpi",indicadores:"kpi",indicador:"kpi",metricas:"kpi",metrica:"kpi",junta:"reunion",juntas:"reuniones",calificar:"evaluar",nota:"calificacion",vigilar:"monitoreo",monitorear:"monitoreo",pelea:"conflicto",discusion:"conflicto",bugs:"defectos",bug:"defectos",errores:"defectos"};
+function toks(s){
+  return norm(s).split(" ").map(w=>SYN[w]||w).filter(w=>w.length>2 && !STOP.has(w)).map(w=>w.length>6?w.slice(0,6):w.replace(/(es|s)$/,""));
+}
+const PASS = [];
+(function build(){
+  const add=(src,title,el,html)=>{ const txt=el.innerText||el.textContent; if(txt.trim().length<12) return;
+    PASS.push({src,title,html,tk:new Set(toks(txt+" "+title))}); };
+  [...TOPICS.map(t=>({src:t,html:t.html})), ...FAQ.map(f=>({src:f,html:f.html}))].forEach(({src,html})=>{
+    const d=document.createElement("div"); d.innerHTML=html;
+    const title=(d.querySelector("h3")||{}).textContent||"";
+    d.querySelectorAll("li, p, tr").forEach(el=>{
+      if(el.tagName==="TR"){ const c=[...el.children].map(x=>x.innerHTML); if(el.querySelector("th")&&!el.querySelector("td")) return; add(src,title,el,c.join(" — ")); }
+      else if(!el.closest("li")||el.tagName==="LI"){ add(src,title,el,el.innerHTML); }
+    });
+  });
+  const df={}; PASS.forEach(p=>p.tk.forEach(w=>df[w]=(df[w]||0)+1));
+  PASS.forEach(p=>{ p.w={}; p.tk.forEach(w=>p.w[w]=Math.log(1+PASS.length/df[w])); });
+})();
+function topPassages(text,n){
+  const q=[...new Set(toks(text))]; if(!q.length) return [];
+  return PASS.map(p=>({p,s:q.reduce((a,w)=>a+(p.w[w]||0),0)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,n).map(x=>x.p);
+}
+let LOCAL=null;
+function offTopic(t){ return / (tarea|examen|finanz|inversion|innovacion|marketing|mercado|receta|futbol|mundial|chiste|pelicula|cancion|traduce|programa en|python) /.test(t) && !/ (epm|kpi|retroaliment|evaluacion del desempeno|colaborador|ingenier) /.test(t); }
+async function localAsk(text){
+  const t=" "+norm(text)+" ";
+  if(offTopic(t) || /^ ([1-5]|siguiente|continuar|sigue|menu|temas|ayuda|opciones) $/.test(t)){ answer(text); return; }
+  const r=search(text);
+  if(!r){ answer(text); return; }
+  const ctxP=topPassages(text,7);
+  const ctx=ctxP.map(p=>"- ("+p.title+") "+plain(p.html)).join("\n");
+  const msg=addMsg("bot",'<p class="thinking">Pensando con IA local…</p>'); const bubble=msg.querySelector(".bubble");
+  setBusy(true);
+  try{
+    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: capacitar a líderes de Anthropic para evaluar el desempeño del puesto Ingeniero/a de Software II con un sistema EPM (Electronic Performance Monitoring) y dar retroalimentación manejando el conflicto. Responde SOLO con la información del CONTEXTO; no inventes datos, metas ni cifras. Si el contexto no alcanza, dilo y sugiere uno de los 5 temas: Bienvenida, El puesto, KPIs y tablero EPM, Planear la entrevista, Tips y manejo de conflicto. Nunca respondas temas ajenos a esta actividad. Responde en español, máximo 120 palabras, con viñetas cortas si ayudan y **negritas** para lo clave.";
+    const hist=turns.slice(-4);
+    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.2,max_tokens:320,
+      messages:[{role:"system",content:sys},...hist,{role:"user",content:"CONTEXTO:\n"+ctx+"\n\nPREGUNTA: "+text}]});
+    let out="";
+    for await(const c of chunks){ out+=c.choices[0]?.delta?.content||""; bubble.innerHTML=md(out); }
+    const tb=[...new Set(ctxP.slice(0,3).map(p=>p.src))].filter(s=>TOPICS.includes(s)).slice(0,2);
+    bubble.innerHTML=md(out)+'<div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema: '+s.n+'. '+s.label+'</button>').join("")+'</div>';
+    turns.push({role:"user",content:text},{role:"assistant",content:out});
+  }catch(e){ msg.remove(); answer(text); }
+  finally{ setBusy(false); }
+}
+function search(text){
+  const q=[...new Set(toks(text))]; if(!q.length) return null;
+  const scored=PASS.map(p=>({p,s:q.reduce((a,w)=>a+(p.w[w]||0),0),hits:q.filter(w=>p.w[w]).length})).filter(x=>x.hits>0).sort((a,b)=>b.s-a.s);
+  if(!scored.length) return null;
+  const top=scored[0];
+  if(top.s<2.2 || (q.length>=3 && top.hits<2 && top.s<3.5)) return null;
+  const picked=[], srcs=[];
+  for(const x of scored){ if(x.s<top.s*0.7||picked.length>=3) break; if(picked.some(y=>y.p.html===x.p.html)) continue;
+    if(!srcs.includes(x.p.src)){ if(srcs.length>=2) continue; srcs.push(x.p.src); } picked.push(x); }
+  return {picked,srcs,score:top.s,qlen:q.length};
+}
+function searchHtml(r){
+  let h='<h3>Esto es lo que dice el tutorial sobre tu pregunta</h3><ul>'+r.picked.map(x=>'<li>'+x.p.html+'</li>').join("")+'</ul>';
+  const tbtn=r.srcs.filter(s=>TOPICS.includes(s)).map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema completo: '+s.n+'. '+s.label+'</button>');
+  const nxt=r.srcs.map(s=>s.next).find(Boolean);
+  if(nxt && !tbtn.length){ const t=TOPICS.find(x=>x.id===nxt); tbtn.push('<button type="button" data-topic="'+t.id+'">Relacionado: '+t.n+'. '+t.label+'</button>'); }
+  return h+'<div class="nav">'+tbtn.join("")+'<button type="button" data-menu="1">Ver todos los temas</button></div>';
+}
+function answer(text){
+  const t = " " + norm(text) + " ";
+  const n = t.trim().match(/^(?:tema\s*)?([1-5])$/);
+  if(n){ showTopic(TOPICS[+n[1]-1]); return; }
+  if(/^ (siguiente|continuar|continua|sigue|next|ok|va|si|dale|listo|avanzar) $/.test(t)){
+    showTopic(TOPICS[Math.min(lastTopic, TOPICS.length-1)]); return;
+  }
+  if(/ (menu|temas|indice|ayuda|opciones) /.test(t)){ addMsg("bot", menuHtml("Estos son los temas del tutorial:")); return; }
+  const score = keys => keys.reduce((s,k)=> s + (t.includes(norm(k)) ? norm(k).split(" ").length + 1 : 0), 0);
+  let best=null, bs=0, kind=null;
+  FAQ.forEach(f=>{ const s=score(f.keys); if(s>bs){ bs=s; best=f; kind="faq"; } });
+  TOPICS.forEach(x=>{ const s=score(x.keys); if(s>bs){ bs=s; best=x; kind="topic"; } });
+  if(/ (tarea|examen|finanz|inversion|innovacion|marketing|mercado|receta|futbol|mundial|chiste|clima del dia|pelicula|cancion|traduce|programa en|python) /.test(t) && !/ (epm|kpi|retroaliment|evaluacion del desempeno|colaborador|ingenier) /.test(t)){
+    addMsg("bot", menuHtml("Eso no es parte de esta actividad. Sólo puedo ayudarte con la evaluación del desempeño del Ingeniero/a de Software II con EPM, la entrevista de retroalimentación y el manejo del conflicto. Elige un tema o una pregunta:")); return; }
+  const r = search(text);
+  if(r && (bs<3 || (r.qlen>=4 && bs<5)) && !(kind==="faq" && bs>=3)){ addMsg("bot", searchHtml(r)); return; }
+  if(kind==="topic"){ showTopic(best); return; }
+  if(kind==="faq"){ addMsg("bot", best.html + navHtml(best.next)); return; }
+  addMsg("bot", menuHtml("Sólo puedo ayudarte con la evaluación del desempeño del Ingeniero/a de Software II con EPM, la entrevista de retroalimentación y el manejo del conflicto. Elige un tema o una pregunta:"));
+}
+function fallback(text){ answer(text); }
+log.addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b || busy) return;
+  if(b.dataset.topic){ const t=TOPICS.find(x=>x.id===b.dataset.topic); addMsg("user", t.n+". "+t.label); showTopic(t); }
+  else if(b.dataset.menu){ addMsg("bot", menuHtml("Estos son los temas del tutorial:")); }
+  else if(b.dataset.ask){ q.value = b.dataset.ask; form.requestSubmit(); }
+});
+
+function setBusy(v){ busy=v; sendBtn.disabled=v; stopBtn.hidden=!v; }
+
+form.addEventListener("submit", async e=>{
+  e.preventDefault();
+  const text = q.value.trim();
+  if(!text || busy) return;
+  q.value = "";
+  addMsg("user", text);
+  if(!sample){ if(LOCAL){ localAsk(text); } else { answer(text); } return; }
+  turns.push({role:"user", content:text});
+  const msg = addMsg("bot", '<p class="thinking">Pensando…</p>');
+  const bubble = msg.querySelector(".bubble");
+  ctl = new AbortController(); setBusy(true);
+  try{
+    const recent = turns.slice(-10);
+    while(recent.length && recent[0].role!=="user") recent.shift();
+    const { text: answer, truncated } = await sample([{role:"user", content:RULES}, ...recent], {
+      cache:false, modelTier:"quick", signal:ctl.signal,
+      onText:({text})=>{ bubble.innerHTML = md(text); }
+    });
+    bubble.innerHTML = md(answer) + (truncated ? '<p class="note">La respuesta se cortó; pregunta algo más específico.</p>' : '');
+    turns.push({role:"assistant", content:answer});
+  }catch(err){
+    turns.pop();
+    const code = err && err.code;
+    if(code === "cancelled"){ bubble.innerHTML = err.text ? md(err.text) : '<p class="note">Respuesta detenida.</p>'; }
+    else if(code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed"){
+      sample = null; setMode(false);
+      msg.remove(); answer(text);
+    } else if(code === "rate_limited"){ bubble.innerHTML = '<p>Recibí muchas preguntas seguidas. Espera un momento y vuelve a intentar, o usa los temas de abajo.</p>'; }
+    else { msg.remove(); answer(text); }
+  }finally{ setBusy(false); q.focus(); }
+});
+stopBtn.onclick = ()=> ctl && ctl.abort();
+
+function setMode(ai){
+  const ab=document.getElementById("aiNote"); if(ab) ab.hidden = ai;
+  document.getElementById("dot").classList.toggle("on", ai);
+  document.getElementById("statusTxt").textContent = ai ? "IA activa" : "En línea";
+  hint.textContent = ai ? "Toca un tema o escribe tu pregunta sobre la evaluación; te responde la IA." : "Toca un tema o escribe tu pregunta sobre la evaluación, el EPM o la retroalimentación.";
+}
+
+showTopic(TOPICS[0], false);
+
+(async ()=>{
+  try{
+    if(window.claude && claude.use){ const s = await claude.use("sample"); if(s){ sample = s; setMode(true); } }
+  }catch(_){}
+})();
+</script>
+
+<script type="module">
+const MODEL_F16="Llama-3.2-1B-Instruct-q4f16_1-MLC", MODEL_F32="Llama-3.2-1B-Instruct-q4f32_1-MLC";
+const btn=document.getElementById("aiBtn"), txt=document.getElementById("aiTxt");
+let webllm=null, loading=false;
+async function pickModel(){
+  const ad=await navigator.gpu.requestAdapter(); if(!ad) return null;
+  return ad.features.has("shader-f16") ? MODEL_F16 : MODEL_F32;
+}
+async function start(auto){
+  if(loading||LOCAL) return; 
+  if(!navigator.gpu){ if(!auto){ txt.textContent="Este navegador no soporta IA local (necesita WebGPU: Chrome/Edge reciente o Safari en iOS 26+). Sigo respondiendo con la búsqueda del tutorial."; btn.hidden=true; } return; }
+  loading=true; btn.disabled=true;
+  try{
+    webllm = webllm || await import("https://esm.run/@mlc-ai/web-llm@0.2.85");
+    const model=await pickModel(); if(!model) throw new Error("gpu");
+    if(auto && !(await webllm.hasModelInCache(model))){ loading=false; btn.disabled=false; return; }
+    txt.innerHTML='Cargando IA local… <span id="pct">0%</span><div class="prog"><i id="bar"></i></div>';
+    const eng=await webllm.CreateMLCEngine(model,{initProgressCallback:p=>{
+      const v=Math.round((p.progress||0)*100); const pc=document.getElementById("pct"), b=document.getElementById("bar");
+      if(pc) pc.textContent=v+"%"; if(b) b.style.width=v+"%"; }});
+    LOCAL=eng; window.LOCAL=eng;
+    btn.hidden=true; txt.textContent="IA local activa (Llama 3.2): escribe cualquier pregunta sobre la actividad.";
+    document.getElementById("dot").classList.add("on"); document.getElementById("statusTxt").textContent="IA local";
+  }catch(e){
+    console.error(e); btn.disabled=false; if(auto) return; txt.textContent="No se pudo cargar la IA local en este dispositivo (poca memoria o WebGPU limitado). Sigo con la búsqueda del tutorial.";
+  }finally{ loading=false; }
+}
+btn.onclick=()=>start(false);
+start(true);
+</script>
+</body></html>
