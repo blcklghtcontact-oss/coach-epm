@@ -343,8 +343,10 @@ async function localAsk(text){
   if(offTopic(t) || /^ ([1-5]|siguiente|continuar|sigue|menu|temas|ayuda|opciones) $/.test(t)){ answer(text); return; }
   const r=search(text);
   if(!r){ answer(text); return; }
-  const ctxP=topPassages(text,7);
-  const ctx=ctxP.map(p=>"- ("+p.title+") "+plain(p.html)).join("\n");
+  const ctxP=topPassages(text,6);
+  const sc=keys=>keys.reduce((a,k)=>a+(t.includes(norm(k))?norm(k).split(" ").length+1:0),0);
+  let kb=null,kbs=0; [...FAQ,...TOPICS].forEach(x=>{ const v=sc(x.keys); if(v>kbs){kbs=v;kb=x;} });
+  const ctx=(kb?"- "+plain(kb.html).slice(0,900)+"\n":"")+ctxP.map(p=>"- ("+p.title+") "+plain(p.html)).join("\n");
   const msg=addMsg("bot",'<p class="thinking">Pensando con IA local…</p>'); const bubble=msg.querySelector(".bubble");
   setBusy(true);
   try{
