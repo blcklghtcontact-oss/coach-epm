@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>*{box-sizing:border-box}body{margin:0}</style></head><body>
+<style>*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style></head><body>
 <title>Coach EPM Anthropic</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,7 @@
   --ok:#4CC27E; --warn:#E3A848; --bad:#EF6F61; color-scheme:dark }
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
-.app{height:100%;display:flex;flex-direction:column;max-width:860px;margin:0 auto;padding-inline:16px}
+.app{height:100%;height:100dvh;display:flex;flex-direction:column;max-width:860px;margin:0 auto;padding-inline:16px}
 header{display:flex;align-items:center;gap:12px;padding-block:16px 12px;border-bottom:1px solid var(--line)}
 .mark{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--mono);font-size:13px;flex:none}
 header h1{font-family:var(--display);font-weight:700;font-size:20px;margin:0;line-height:1.2;text-wrap:balance}
@@ -33,7 +33,7 @@ header p{margin:0;color:var(--muted);font-size:13px}
 .status{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.on{background:var(--ok)}
-#log{flex:1;overflow-y:auto;padding-block:20px;display:flex;flex-direction:column;gap:14px}
+#log{flex:1;min-height:0;overflow-y:auto;padding-block:20px;display:flex;flex-direction:column;gap:14px}
 .msg{max-width:min(680px,92%);min-width:0}
 .msg.bot{align-self:flex-start}
 .msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);padding:10px 14px;border-radius:14px 14px 4px 14px}
@@ -60,7 +60,8 @@ tr:last-child td{border-bottom:0}
 .note{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin-top:8px}
 .thinking{color:var(--muted);font-style:italic}
 footer{border-top:1px solid var(--line);padding-block:12px 16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:2px}
+.chips{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
 .nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .nav button{font:inherit;font-size:13px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--ink);padding:6px 12px;border-radius:99px;cursor:pointer}
 .nav button:hover{background:var(--accent);color:var(--accent-ink)}
@@ -78,7 +79,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .aibar .btn{padding:7px 12px;font-size:13px}
 .prog{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
 .hint{font-size:12px;color:var(--muted);margin:0}
-@media (max-width:520px){.status span{display:none} header p{display:none}}
+@media (max-width:520px){.status span{display:none} header p{display:none} header{padding-block:10px 8px} header h1{font-size:17px} .mark{width:34px;height:34px} #hint{display:none} footer{padding-block:8px 10px;gap:8px} .chips button{padding:6px 10px;font-size:12px} #log{padding-block:12px} #q,.btn{padding:9px 12px}}
+@media (max-height:700px){#hint{display:none}}
 @media (prefers-reduced-motion:no-preference){.msg{animation:in .25s ease-out}@keyframes in{from{transform:translateY(4px)}to{transform:none}}}
 </style>
 
@@ -95,7 +97,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <main id="log" aria-live="polite"></main>
 
   <footer>
-    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local</button><span class="hint" id="aiTxt">Corre en tu dispositivo, gratis y sin cuenta. Se descarga una sola vez (~1 GB, mejor con Wi-Fi) y después abre en segundos.</span></div>
+    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local</button><span class="hint" id="aiTxt">Gratis y sin cuenta; se descarga una vez (mejor con Wi-Fi).</span></div>
     <div class="chips" id="chips" aria-label="Temas del tutorial"></div>
     <form id="f">
       <input id="q" autocomplete="off" placeholder="Pregunta lo que quieras sobre la evaluación…" aria-label="Escribe tu pregunta">
@@ -463,19 +465,27 @@ showTopic(TOPICS[0], false);
 const MODEL_F16="Qwen2.5-1.5B-Instruct-q4f16_1-MLC", MODEL_F32="Qwen2.5-1.5B-Instruct-q4f32_1-MLC";
 const btn=document.getElementById("aiBtn"), txt=document.getElementById("aiTxt");
 let webllm=null, loading=false;
+const MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const INAPP=/WhatsApp|FBAN|FBAV|Instagram|Line\/|; wv\)/i.test(navigator.userAgent);
 async function pickModel(){
   const ad=await navigator.gpu.requestAdapter(); if(!ad) return null;
-  return ad.features.has("shader-f16") ? MODEL_F16 : MODEL_F32;
+  const f16=ad.features.has("shader-f16");
+  if(MOBILE) return f16 ? "Qwen2.5-0.5B-Instruct-q4f16_1-MLC" : "Qwen2.5-0.5B-Instruct-q4f32_1-MLC";
+  return f16 ? MODEL_F16 : MODEL_F32;
+}
+function failMsg(why){
+  document.getElementById("aibar").hidden=true;
+  addMsg("bot",'<p><b>No se pudo activar la IA local en este dispositivo</b> ('+why+').</p><p>Para usarla, abre el link en <b>Chrome</b> (Android) o <b>Safari</b> (iPhone con iOS 26 o más nuevo) o en una computadora, no dentro de WhatsApp.</p><p>Mientras tanto <b>sí puedes escribir tu pregunta</b>: te respondo con el contenido del tutorial.</p>');
 }
 async function start(auto){
   if(loading||LOCAL) return; 
-  if(!navigator.gpu){ if(!auto){ txt.textContent="Este navegador no soporta IA local (necesita WebGPU: Chrome/Edge reciente o Safari en iOS 26+). Sigo respondiendo con la búsqueda del tutorial."; btn.hidden=true; } return; }
+  if(!navigator.gpu){ if(!auto) failMsg(INAPP ? "lo abriste dentro de WhatsApp u otra app" : "este navegador no tiene WebGPU"); return; }
   loading=true; btn.disabled=true;
   try{
     webllm = webllm || await import("https://esm.run/@mlc-ai/web-llm@0.2.85");
     const model=await pickModel(); if(!model) throw new Error("gpu");
     if(auto && !(await webllm.hasModelInCache(model))){ loading=false; btn.disabled=false; return; }
-    txt.innerHTML='Cargando IA local… <span id="pct">0%</span><div class="prog"><i id="bar"></i></div>';
+    txt.innerHTML='Cargando IA local… <span id="pct">0%</span> (sólo la primera vez tarda)<div class="prog"><i id="bar"></i></div>';
     const eng=await webllm.CreateMLCEngine(model,{initProgressCallback:p=>{
       const v=Math.round((p.progress||0)*100); const pc=document.getElementById("pct"), b=document.getElementById("bar");
       if(pc) pc.textContent=v+"%"; if(b) b.style.width=v+"%"; }});
@@ -483,7 +493,7 @@ async function start(auto){
     btn.hidden=true; txt.textContent="IA local activa: escribe cualquier pregunta sobre la actividad.";
     document.getElementById("dot").classList.add("on"); document.getElementById("statusTxt").textContent="IA local";
   }catch(e){
-    console.error(e); btn.disabled=false; if(auto) return; txt.textContent="No se pudo cargar la IA local en este dispositivo (poca memoria o WebGPU limitado). Sigo con la búsqueda del tutorial.";
+    console.error(e); btn.disabled=false; if(auto) return; failMsg("memoria o WebGPU insuficiente");
   }finally{ loading=false; }
 }
 btn.onclick=()=>start(false);
