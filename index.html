@@ -348,14 +348,14 @@ async function localAsk(text){
   const msg=addMsg("bot",'<p class="thinking">Pensando con IA local…</p>'); const bubble=msg.querySelector(".bubble");
   setBusy(true);
   try{
-    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: capacitar a líderes de Anthropic para evaluar el desempeño del puesto Ingeniero/a de Software II con un sistema EPM (Electronic Performance Monitoring) y dar retroalimentación manejando el conflicto. Responde SOLO con la información del CONTEXTO; no inventes datos, metas ni cifras. Si el contexto no alcanza, dilo y sugiere uno de los 5 temas: Bienvenida, El puesto, KPIs y tablero EPM, Planear la entrevista, Tips y manejo de conflicto. Nunca respondas temas ajenos a esta actividad. Responde en español, máximo 120 palabras, con viñetas cortas si ayudan y **negritas** para lo clave.";
+    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: líderes de Anthropic que evalúan el desempeño del puesto Ingeniero/a de Software II con un sistema EPM y dan retroalimentación manejando el conflicto. Reglas: 1) Responde SOLO con lo que dicen las NOTAS; no agregues herramientas, empresas, ejemplos, cifras ni recomendaciones que no estén en las NOTAS. 2) Si las NOTAS no responden la pregunta, di: \"Eso no viene en el tutorial\" y sugiere el tema más cercano. 3) Español, tono de coach, máximo 100 palabras, viñetas cortas y **negritas** para lo clave. 4) No saludes ni uses encabezados como Líder: o Bienvenida.";
     const hist=LTURNS.slice(-4);
-    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.3,max_tokens:320,repetition_penalty:1.1,
+    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.15,max_tokens:300,repetition_penalty:1.1,
       messages:[{role:"system",content:sys},...hist,{role:"user",content:"CONTEXTO:\n"+ctx+"\n\nPREGUNTA: "+text}]});
     let out="";
     for await(const c of chunks){ out+=c.choices[0]?.delta?.content||""; bubble.innerHTML=md(out); }
     const tb=[...new Set(ctxP.slice(0,3).map(p=>p.src))].filter(s=>TOPICS.includes(s)).slice(0,2);
-    bubble.innerHTML=md(out)+'<div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema: '+s.n+'. '+s.label+'</button>').join("")+'</div>';
+    bubble.innerHTML=md(out)+'<p class="note"><b>Según el tutorial:</b> '+ctxP.slice(0,2).map(p=>plain(p.html)).join(' · ')+'</p><div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema: '+s.n+'. '+s.label+'</button>').join("")+'</div>';
     turns.push({role:"user",content:text},{role:"assistant",content:out}); LTURNS.push({role:"user",content:text},{role:"assistant",content:out});
   }catch(e){ msg.remove(); answer(text); }
   finally{ setBusy(false); }
