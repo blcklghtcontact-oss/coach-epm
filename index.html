@@ -350,8 +350,8 @@ async function localAsk(text){
   const msg=addMsg("bot",'<p class="thinking">Pensando con IA local…</p>'); const bubble=msg.querySelector(".bubble");
   setBusy(true);
   try{
-    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: líderes de Anthropic que evalúan el desempeño del puesto Ingeniero/a de Software II con un sistema EPM y dan retroalimentación manejando el conflicto. Reglas: 1) Responde SOLO con lo que dicen las NOTAS; no agregues herramientas, empresas, ejemplos, cifras ni recomendaciones que no estén en las NOTAS. 2) Si las NOTAS no responden la pregunta, di: \"Eso no viene en el tutorial\" y sugiere el tema más cercano. 3) Español, tono de coach, máximo 100 palabras, viñetas cortas y **negritas** para lo clave. 4) No saludes ni uses encabezados como Líder: o Bienvenida.";
-    const hist=LTURNS.slice(-4);
+    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: líderes de Anthropic que evalúan el desempeño del puesto Ingeniero/a de Software II con un sistema EPM y dan retroalimentación manejando el conflicto. Reglas: 1) Responde SOLO con lo que dicen las NOTAS; no agregues herramientas, empresas, ejemplos, cifras ni recomendaciones que no estén en las NOTAS. 2) Usa las NOTAS para dar una respuesta práctica y directa a la pregunta; sólo si NINGUNA nota se relaciona con la pregunta, dilo en una frase y sugiere el tema más cercano. 3) Español, tono de coach, máximo 100 palabras, viñetas cortas y **negritas** para lo clave. 4) No saludes ni uses encabezados como Líder: o Bienvenida.";
+    const hist=[];
     const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.15,max_tokens:300,repetition_penalty:1.1,
       messages:[{role:"system",content:sys},...hist,{role:"user",content:"CONTEXTO:\n"+ctx+"\n\nPREGUNTA: "+text}]});
     let out="";
