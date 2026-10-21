@@ -95,7 +95,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <main id="log" aria-live="polite"></main>
 
   <footer>
-    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local (Llama 3.2)</button><span class="hint" id="aiTxt">Corre en tu dispositivo, gratis y sin cuenta. Se descarga una vez (~700 MB, mejor con Wi-Fi).</span></div>
+    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local</button><span class="hint" id="aiTxt">Corre en tu dispositivo, gratis y sin cuenta. Se descarga una sola vez (~1 GB, mejor con Wi-Fi) y después abre en segundos.</span></div>
     <div class="chips" id="chips" aria-label="Temas del tutorial"></div>
     <form id="f">
       <input id="q" autocomplete="off" placeholder="Pregunta lo que quieras sobre la evaluación…" aria-label="Escribe tu pregunta">
@@ -313,7 +313,7 @@ function menuHtml(intro){
 
 // ---- Búsqueda abierta en todo el contenido (sin IA, sin costo) ----
 const STOP = new Set("a al algo algun alguna como con cual cuales cuando de del el ella ellos en entre es esa ese eso esta este esto estos fue ha hay la las le les lo los mas me mi mis muy no nos o para pero por que quien se si sin sobre son su sus te tiene tu tus un una uno unos y ya yo puedo debo hago hacer hace tengo quiero saber dime explica explicame cual cuando donde porque pues entonces bien mal ser estar".split(" "));
-const SYN = {jefe:"lider",jefes:"lideres",gerente:"lider",manager:"lider",empleado:"colaborador",empleados:"colaboradores",trabajador:"colaborador",trabajadores:"colaboradores",feedback:"retroalimentacion",retro:"retroalimentacion",kpis:"kpi",indicadores:"kpi",indicador:"kpi",metricas:"kpi",metrica:"kpi",junta:"reunion",juntas:"reuniones",calificar:"evaluar",nota:"calificacion",vigilar:"monitoreo",monitorear:"monitoreo",pelea:"conflicto",discusion:"conflicto",bugs:"defectos",bug:"defectos",errores:"defectos"};
+const SYN = {jefe:"lider",jefes:"lideres",gerente:"lider",manager:"lider",empleado:"colaborador",empleados:"colaboradores",trabajador:"colaborador",trabajadores:"colaboradores",feedback:"retroalimentacion",retro:"retroalimentacion",kpis:"kpi",indicadores:"kpi",indicador:"kpi",metricas:"kpi",metrica:"kpi",junta:"reunion",juntas:"reuniones",calificar:"evaluar",nota:"calificacion",monitorear:"monitoreo",pelea:"conflicto",discusion:"conflicto",bugs:"defectos",espiar:"vigilancia",espiando:"vigilancia",espia:"vigilancia",espian:"vigilancia",vigilando:"vigilancia",vigilar:"vigilancia",bug:"defectos",errores:"defectos"};
 function toks(s){
   return norm(s).split(" ").map(w=>SYN[w]||w).filter(w=>w.length>2 && !STOP.has(w)).map(w=>w.length>6?w.slice(0,6):w.replace(/(es|s)$/,""));
 }
@@ -336,7 +336,7 @@ function topPassages(text,n){
   const q=[...new Set(toks(text))]; if(!q.length) return [];
   return PASS.map(p=>({p,s:q.reduce((a,w)=>a+(p.w[w]||0),0)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,n).map(x=>x.p);
 }
-let LOCAL=null;
+let LOCAL=null; const LTURNS=[];
 function offTopic(t){ return / (tarea|examen|finanz|inversion|innovacion|marketing|mercado|receta|futbol|mundial|chiste|pelicula|cancion|traduce|programa en|python) /.test(t) && !/ (epm|kpi|retroaliment|evaluacion del desempeno|colaborador|ingenier) /.test(t); }
 async function localAsk(text){
   const t=" "+norm(text)+" ";
@@ -349,14 +349,14 @@ async function localAsk(text){
   setBusy(true);
   try{
     const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: capacitar a líderes de Anthropic para evaluar el desempeño del puesto Ingeniero/a de Software II con un sistema EPM (Electronic Performance Monitoring) y dar retroalimentación manejando el conflicto. Responde SOLO con la información del CONTEXTO; no inventes datos, metas ni cifras. Si el contexto no alcanza, dilo y sugiere uno de los 5 temas: Bienvenida, El puesto, KPIs y tablero EPM, Planear la entrevista, Tips y manejo de conflicto. Nunca respondas temas ajenos a esta actividad. Responde en español, máximo 120 palabras, con viñetas cortas si ayudan y **negritas** para lo clave.";
-    const hist=turns.slice(-4);
-    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.2,max_tokens:320,
+    const hist=LTURNS.slice(-4);
+    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.3,max_tokens:320,repetition_penalty:1.1,
       messages:[{role:"system",content:sys},...hist,{role:"user",content:"CONTEXTO:\n"+ctx+"\n\nPREGUNTA: "+text}]});
     let out="";
     for await(const c of chunks){ out+=c.choices[0]?.delta?.content||""; bubble.innerHTML=md(out); }
     const tb=[...new Set(ctxP.slice(0,3).map(p=>p.src))].filter(s=>TOPICS.includes(s)).slice(0,2);
     bubble.innerHTML=md(out)+'<div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema: '+s.n+'. '+s.label+'</button>').join("")+'</div>';
-    turns.push({role:"user",content:text},{role:"assistant",content:out});
+    turns.push({role:"user",content:text},{role:"assistant",content:out}); LTURNS.push({role:"user",content:text},{role:"assistant",content:out});
   }catch(e){ msg.remove(); answer(text); }
   finally{ setBusy(false); }
 }
@@ -458,7 +458,7 @@ showTopic(TOPICS[0], false);
 </script>
 
 <script type="module">
-const MODEL_F16="Llama-3.2-1B-Instruct-q4f16_1-MLC", MODEL_F32="Llama-3.2-1B-Instruct-q4f32_1-MLC";
+const MODEL_F16="Qwen2.5-1.5B-Instruct-q4f16_1-MLC", MODEL_F32="Qwen2.5-1.5B-Instruct-q4f32_1-MLC";
 const btn=document.getElementById("aiBtn"), txt=document.getElementById("aiTxt");
 let webllm=null, loading=false;
 async function pickModel(){
@@ -478,7 +478,7 @@ async function start(auto){
       const v=Math.round((p.progress||0)*100); const pc=document.getElementById("pct"), b=document.getElementById("bar");
       if(pc) pc.textContent=v+"%"; if(b) b.style.width=v+"%"; }});
     LOCAL=eng; window.LOCAL=eng;
-    btn.hidden=true; txt.textContent="IA local activa (Llama 3.2): escribe cualquier pregunta sobre la actividad.";
+    btn.hidden=true; txt.textContent="IA local activa: escribe cualquier pregunta sobre la actividad.";
     document.getElementById("dot").classList.add("on"); document.getElementById("statusTxt").textContent="IA local";
   }catch(e){
     console.error(e); btn.disabled=false; if(auto) return; txt.textContent="No se pudo cargar la IA local en este dispositivo (poca memoria o WebGPU limitado). Sigo con la búsqueda del tutorial.";
