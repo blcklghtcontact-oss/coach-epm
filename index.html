@@ -97,14 +97,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <main id="log" aria-live="polite"></main>
 
   <footer>
-    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA local</button><span class="hint" id="aiTxt">Gratis y sin cuenta; se descarga una vez (mejor con Wi-Fi).</span></div>
-    <div class="chips" id="chips" aria-label="Temas del tutorial"></div>
+    <div class="aibar" id="aibar"><button type="button" class="btn ghost" id="aiBtn">Activar IA (recomendado)</button><span class="hint" id="aiTxt">Gratis y sin cuenta; se descarga una vez (mejor con Wi-Fi).</span></div>
+    <div class="chips" id="chips" aria-label="Preguntas sugeridas"></div>
     <form id="f">
-      <input id="q" autocomplete="off" placeholder="Pregunta lo que quieras sobre la evaluación…" aria-label="Escribe tu pregunta">
+      <input id="q" autocomplete="off" placeholder="Escríbeme lo que quieras…" aria-label="Escribe tu pregunta">
       <button class="btn" id="send" type="submit">Enviar</button>
       <button class="btn ghost" id="stop" type="button" hidden>Detener</button>
     </form>
-    <p class="hint" id="hint">Toca un tema o escribe tu pregunta sobre la evaluación, el EPM o la retroalimentación.</p>
+    <p class="hint" id="hint">Pregúntame lo que quieras con tus propias palabras; no hay comandos.</p>
   </footer>
 </div>
 
@@ -116,7 +116,7 @@ html:`<h3>Bienvenido, líder</h3>
 <h4>En este tutorial vas a ver</h4>
 <ol><li>Bienvenida y propósito</li><li>El puesto que vas a evaluar</li><li>Los KPIs, su tablero y cómo los mide el EPM</li><li>Cómo planear la entrevista de retroalimentación</li><li>Tips para una retroalimentación exitosa y manejo positivo del conflicto</li></ol>
 <p>Una idea antes de empezar: en Anthropic el EPM existe para <b>dar claridad y apoyo</b>, no para vigilar. Los datos abren la conversación; no la sustituyen.</p>
-<p class="note">Sigue los temas en orden con los botones de abajo, o escríbeme tu duda.</p>`},
+<p class="note">Pregúntame lo que quieras, como a cualquier IA. También puedes seguir el tutorial paso a paso con el botón «Siguiente».</p>`},
 
 { id:"puesto", n:2, label:"El puesto", keys:["puesto","rol","ingenier","responsab","perfil","competenc","función","funcion"],
 html:`<h3>Puesto a evaluar: Ingeniero/a de Software II</h3>
@@ -205,15 +205,11 @@ function addMsg(role, html){
   return wrap;
 }
 
-TOPICS.forEach(t=>{
-  const b = document.createElement("button");
-  b.type = "button";
-  b.innerHTML = '<span class="n">' + t.n + '</span>' + t.label;
-  b.onclick = ()=>{ addMsg("user", t.n + ". " + t.label); showTopic(t); };
-  chips.appendChild(b);
-});
+const SUGG=["¿Qué es el EPM?","¿Cómo doy retroalimentación difícil?","¿Qué KPIs se miden?","Dame un ejemplo de conversación","¿Cómo preparo la entrevista?","¿Qué hago si no está de acuerdo?","¿Cómo motivo a un ingeniero?","¿El EPM invade la privacidad?"];
+{ const b=document.createElement("button"); b.type="button"; b.innerHTML='<span class="n">☰</span>Tutorial'; b.onclick=()=>{ if(busy) return; addMsg("bot", menuHtml("Estos son los temas del tutorial:")); }; chips.appendChild(b); }
+SUGG.forEach(x=>{ const b=document.createElement("button"); b.type="button"; b.textContent=x; b.onclick=()=>{ if(busy) return; q.value=x; form.requestSubmit(); }; chips.appendChild(b); });
 
-function plain(html){ const d=document.createElement("div"); d.innerHTML=html; return d.innerText.replace(/\n{3,}/g,"\n\n").trim(); }
+function plain(html){ const d=document.createElement("div"); d.innerHTML=html.replace(/<\/(h3|h4|p|li|td|th)>/g,"$& ").replace(/<\/tr>/g,"; "); return d.innerText.replace(/\n{3,}/g,"\n\n").trim(); }
 
 function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function md(src){
@@ -275,6 +271,59 @@ html:`<h3>Estructura de la reunión (45 min)</h3><ol><li><b>Apertura (5 min):</b
 html:`<h3>Si la reunión es por videollamada</h3><ul><li>Cámara encendida para ambos y un espacio privado sin interrupciones.</li><li>Comparte el tablero en pantalla para ver los mismos datos.</li><li>Haz más pausas y preguntas: es más difícil leer las emociones.</li><li>Envía los acuerdos por escrito al terminar.</li></ul>`, next:"tips"}
 ];
 
+FAQ.push(
+{ keys:["que es la evaluacion del desempeno","evaluacion del desempeno","que es evaluar","para que sirve evaluar","para que sirve la evaluacion"],
+html:`<h3>¿Qué es la evaluación del desempeño?</h3><p>Es el proceso para medir qué tan bien una persona cumple las metas y conductas de su puesto, darle retroalimentación y decidir su desarrollo.</p><ul><li><b>Fin estratégico:</b> alinear el trabajo con las metas de la empresa.</li><li><b>Fin administrativo:</b> sueldos, bonos, promociones.</li><li><b>Fin de desarrollo:</b> detectar fortalezas y áreas de mejora.</li></ul><p>En este tutorial se hace con datos del EPM más una conversación de retroalimentación.</p>`, next:"kpis"},
+{ keys:["360","evaluacion 360","pares","subordinados"],
+html:`<h3>Evaluación 360°</h3><p>Opinan el jefe, los compañeros, las personas a cargo, los clientes internos y uno mismo. Para un Ingeniero/a de Software II sirve juntar la opinión de quienes revisan su código y de quien comparte guardias con él o ella.</p><p>Complementa al EPM: el EPM mide resultados; el 360° mide colaboración y comunicación. Se usa sobre todo para <b>desarrollo</b>, no para decidir sueldos.</p>`, next:"tips"},
+{ keys:["okr","kpi vs okr","diferencia entre kpi","indicador vs objetivo"],
+html:`<h3>KPI vs. OKR</h3><ul><li><b>KPI:</b> indicador que se vigila siempre (ej. defectos a producción ≤ 5 %).</li><li><b>OKR:</b> objetivo ambicioso del trimestre + resultados clave medibles (ej. "Hacer el producto más confiable": bajar incidentes 30 %).</li></ul><p>Los KPIs del tablero EPM muestran la salud del trabajo diario; los OKR marcan hacia dónde mejorar.</p>`, next:"kpis"},
+{ keys:["motivar","motivacion","motivado","desmotivado","herzberg","maslow","vroom"],
+html:`<h3>Cómo motivar a un ingeniero</h3><ul><li><b>Herzberg:</b> el sueldo y las condiciones evitan la insatisfacción, pero motivan el logro, el reconocimiento, la autonomía y el crecimiento.</li><li><b>Vroom:</b> la persona se esfuerza si cree que puede lograrlo, que habrá recompensa y que esa recompensa le importa.</li><li>En la práctica: metas claras, reconocer logros con datos del tablero, retos técnicos, tiempo de enfoque protegido y un plan de carrera.</li></ul>`, next:"tips"},
+{ keys:["bueno tecnicamente","buen codigo pero","no colabora","no trabaja en equipo","conflicto con companeros","companero dificil"],
+html:`<h3>Muy bueno técnico, pero no colabora</h3><ol><li>Reconoce su nivel técnico con datos (ciclo de cambios, calidad).</li><li>Habla con SCI de la conducta concreta: "En el sprint 15 tus revisiones tardaron 3 días y dos compañeros quedaron bloqueados".</li><li>Explica que la colaboración es parte del puesto (revisiones a tiempo pesan 15 %).</li><li>Acuerden una meta SMART: revisiones en ≤ 24 h durante el siguiente mes.</li><li>Da seguimiento y reconoce el cambio.</li></ol>`, next:"tips"},
+{ keys:["no da consentimiento","no acepta el epm","se niega al monitoreo","no quiere el epm","rechaza el monitoreo"],
+html:`<h3>Si un colaborador no quiere el EPM</h3><ul><li>Escucha sus razones: suele ser miedo a la vigilancia o a que lo midan solo por números.</li><li>Explica qué se mide y qué NO (sin cámara, micrófono, capturas ni teclado; solo horario laboral) y que él o ella ve su propio tablero.</li><li>Recuerda que el EPM requiere aviso por escrito y consentimiento; no se usa como amenaza.</li><li>Si sigue en desacuerdo, escálalo a RH para revisar opciones (por ejemplo, medir solo las integraciones del repositorio y los tickets).</li></ul>`, next:"kpis"},
+{ keys:["plan de mejora","pip","bajo rendimiento persistente","despedir","despido","no mejora"],
+html:`<h3>Si después del seguimiento no mejora</h3><ol><li>Revisa si la causa es de capacidad (falta habilidad) o de motivación.</li><li>Haz un <b>plan de mejora</b> por escrito: metas SMART, apoyo (capacitación, mentor), fechas de revisión (30, 60, 90 días).</li><li>Documenta cada reunión.</li><li>Solo si no hay avance, RH valora reubicar o separar, con un proceso justo y documentado.</li></ol>`, next:"tips"},
+{ keys:["sesgo","sesgos","objetivo","objetividad","justo","justa","imparcial"],
+html:`<h3>Cómo hacer una evaluación justa</h3><ul><li>Usa datos de varias semanas (evita el sesgo de recencia).</li><li>Compara contra la meta, no contra otro compañero (evita el efecto contraste).</li><li>Pregunta el contexto antes de concluir (evita el error fundamental de atribución).</li><li>Evalúa conductas y resultados, no la personalidad.</li><li>Pide la autoevaluación y, si puedes, opiniones de pares.</li></ul>`, next:"tips"},
+{ keys:["escucha activa","escuchar","como escucho"],
+html:`<h3>Escucha activa</h3><ul><li>Deja terminar sin interrumpir.</li><li>Reformula: "Lo que entiendo es que…".</li><li>Haz preguntas abiertas: "¿Qué te lo impidió?".</li><li>Valida la emoción antes de dar tu punto de vista.</li><li>Resume los acuerdos al final.</li></ul>`, next:"tips"},
+{ keys:["malas noticias","mala calificacion","decirle que no","comunicar resultado negativo"],
+html:`<h3>Cómo dar una mala noticia en la evaluación</h3><ol><li>Ve directo, sin rodeos largos, pero con respeto.</li><li>Da el dato y su impacto (SCI).</li><li>Deja espacio para su reacción y escucha.</li><li>Pasa pronto al futuro: qué se puede hacer y qué apoyo darás.</li><li>Cierra con acuerdos claros y fecha de seguimiento.</li></ol>`, next:"tips"},
+{ keys:["feedforward","diferencia entre critica","critica constructiva","critica"],
+html:`<h3>Retroalimentación vs. crítica</h3><p>La crítica habla de la persona y del pasado ("eres descuidado"). La retroalimentación habla de una conducta observable, su impacto y qué hacer después.</p><p><b>Feedforward:</b> enfocarse en el futuro: "Para el próximo sprint, ¿qué podrías probar para que los cambios lleguen con pruebas?".</p>`, next:"tips"},
+{ keys:["burnout","agotado","estres","carga de trabajo","sobrecarga","horas extra"],
+html:`<h3>Si el tablero muestra señales de agotamiento</h3><p>Muchas horas, guardias seguidas o caída del enfoque pueden indicar burnout. El EPM sirve para <b>detectarlo y apoyar</b>, no para exigir más.</p><ul><li>Pregunta cómo está y qué carga tiene.</li><li>Reparte guardias, prioriza tareas y protege tiempo de enfoque.</li><li>Ofrece los apoyos de bienestar de la empresa.</li></ul>`, next:"tips"},
+{ keys:["remoto","home office","hibrido","teletrabajo"],
+html:`<h3>EPM y trabajo híbrido</h3><p>El puesto es híbrido con laptop corporativa. El EPM mide igual en casa y en oficina, solo en horario laboral, y la NOM-037-STPS (teletrabajo) pide respetar la desconexión y la privacidad.</p><p>Para retroalimentar a distancia: videollamada con cámara, tablero compartido en pantalla y acuerdos por escrito.</p>`, next:"planear"},
+{ keys:["promocion","ascenso","crecer","carrera","senior","siguiente nivel"],
+html:`<h3>Cómo usar la evaluación para su crecimiento</h3><ul><li>Identifica 1 o 2 fortalezas que lo acercan al siguiente nivel (por ejemplo, diseño de sistemas).</li><li>Acuerda un reto concreto: liderar un componente o mentorear a alguien.</li><li>Define qué indicadores mostrarán que está listo y revisa cada trimestre.</li></ul>`, next:"tips"},
+{ keys:["que hace un ingeniero","ingeniero de software ii","software ii","funciones del ingeniero"],
+html:`<h3>El Ingeniero/a de Software II</h3><p>Diseña, construye y mantiene funciones del producto de forma segura y a tiempo. Entrega lo comprometido en cada sprint, revisa el código de sus compañeros, atiende incidentes en su guardia, cuida la seguridad y privacidad de los datos y documenta.</p><p>Competencias: calidad de código, pruebas, diseño de sistemas, colaboración, comunicación y apertura a la retroalimentación.</p>`, next:"kpis"},
+{ keys:["que es un sprint","sprint"],
+html:`<h3>¿Qué es un sprint?</h3><p>Un periodo corto de trabajo (normalmente 2 semanas) en el que el equipo se compromete a terminar ciertas tareas. El KPI de <b>cumplimiento del sprint</b> compara lo comprometido contra lo terminado; la meta es ≥ 85 %.</p>`, next:"kpis"},
+{ keys:["que es guardia","on call","on-call","incidente","pagerduty"],
+html:`<h3>Guardias e incidentes</h3><p>En la guardia (on-call) el ingeniero atiende las alertas del sistema fuera del flujo normal. El KPI mide cuánto tarda en <b>reconocer la alerta</b> (meta ≤ 15 min) y se espera que documente la causa raíz después.</p>`, next:"kpis"},
+{ keys:["revision de codigo","code review","revisiones"],
+html:`<h3>Revisiones de código</h3><p>Un compañero revisa los cambios antes de integrarlos para detectar errores y compartir conocimiento. El KPI mide el tiempo de respuesta a las solicitudes de revisión (meta ≤ 24 h, peso 15 %). Revisiones lentas bloquean al equipo.</p>`, next:"kpis"},
+{ keys:["ciclo de cambios","tiempo de ciclo","lead time"],
+html:`<h3>Tiempo de ciclo de cambios</h3><p>Tiempo desde que se abre un cambio en el repositorio hasta que se integra. Meta ≤ 2 días, peso 20 %. Un ciclo largo puede venir de cambios demasiado grandes o de revisiones lentas.</p>`, next:"kpis"},
+{ keys:["que es anthropic","anthropic"],
+html:`<h3>Anthropic en este tutorial</h3><p>Anthropic es una empresa de investigación y desarrollo de inteligencia artificial (crea a Claude). En esta actividad es el caso: sus líderes de ingeniería evalúan a ingenieros de software del área de producto con un sistema EPM.</p>`, next:"puesto"},
+{ keys:["liderazgo","estilo de liderazgo","lider","transformacional","situacional"],
+html:`<h3>Liderazgo en la evaluación</h3><ul><li><b>Situacional:</b> adapta tu estilo al nivel del colaborador (dirigir, persuadir, participar o delegar).</li><li><b>Transformacional:</b> inspira con un propósito y atiende a cada persona.</li><li><b>Servidor:</b> tu trabajo es quitar obstáculos al equipo.</li></ul><p>En la entrevista conviene un estilo participativo: el colaborador habla primero y construyen juntos las metas.</p>`, next:"tips"},
+{ keys:["reconocimiento","premio","incentivo","bono","recompensa"],
+html:`<h3>Reconocimiento y recompensas</h3><p>Los datos del tablero sirven también para reconocer: guardias bien atendidas, revisiones rápidas o cero defectos en un sprint. Combina reconocimiento público y privado, y conéctalo con oportunidades de crecimiento, no solo con dinero.</p>`, next:"tips"},
+{ keys:["preguntas para la entrevista","que le pregunto","preguntas abiertas","que preguntar"],
+html:`<h3>Preguntas útiles para la entrevista</h3><ul><li>"¿Qué fue lo que más te enorgulleció de estas 6 semanas?"</li><li>"¿Qué te bloqueó o te quitó tiempo de enfoque?"</li><li>"Al ver tu tablero, ¿qué te sorprende?"</li><li>"¿Qué apoyo necesitas de mí?"</li><li>"¿Qué meta te gustaría ponerte para el próximo mes?"</li></ul>`, next:"planear"},
+{ keys:["ejemplo de conversacion","simula","simulacion","role play","ejemplo de dialogo","ejemplo de entrevista"],
+html:`<h3>Ejemplo breve de conversación</h3><p><b>Líder:</b> "Gracias por tu autoevaluación. Coincido en que tus revisiones mejoraron mucho: 18 h en promedio".</p><p><b>Líder:</b> "Quiero platicar de los defectos: en el sprint 14, tres cambios llegaron sin pruebas y el equipo pasó dos días corrigiendo. ¿Qué pasó desde tu lado?"</p><p><b>Ingeniero:</b> "Teníamos prisa por la fecha de entrega".</p><p><b>Líder:</b> "Entiendo. ¿Qué te parece si acordamos pruebas en el 100 % de los cambios y yo negocio fechas más realistas? Lo revisamos en 30 días".</p>`, next:"tips"},
+{ keys:["etica","etico","dilema"],
+html:`<h3>Ética del EPM</h3><ul><li><b>Transparencia:</b> el colaborador sabe qué se mide y para qué.</li><li><b>Proporcionalidad:</b> solo se mide lo necesario para el trabajo.</li><li><b>Propósito de apoyo,</b> no de castigo ni de amenaza.</li><li><b>Privacidad:</b> nada personal, nada fuera de horario.</li><li><b>Participación:</b> se puede discutir y ajustar cómo se mide.</li></ul>`, next:"kpis"}
+);
+
 const KB = TOPICS.map(t=> "## " + t.n + ". " + t.label + "\n" + plain(t.html)).join("\n\n")
   + "\n\n## Preguntas frecuentes\n" + FAQ.map(f=>plain(f.html)).join("\n\n");
 const RULES = `Eres "Coach EPM", un chatbot de capacitación para líderes (mandos medios y gerentes) de la empresa Anthropic. Tu tema es la evaluación del desempeño del puesto Ingeniero/a de Software II usando un sistema EPM (Electronic Performance Monitoring) y cómo dar retroalimentación manejando el conflicto de forma positiva.
@@ -310,7 +359,7 @@ function showTopic(t, record=true){
 function menuHtml(intro){
   return '<p>'+intro+'</p><div class="nav">' + TOPICS.map(x=>'<button type="button" data-topic="'+x.id+'">'+x.n+'. '+x.label+'</button>').join("") + '</div>'
    + '<h4>También puedes preguntarme, por ejemplo</h4><div class="nav">'
-   + ["¿Qué es el EPM?","¿Cómo se calcula la calificación?","¿Qué hago si no está de acuerdo?","Ejemplo de meta SMART","¿Qué no debo hacer?"].map(x=>'<button type="button" data-ask="'+x+'">'+x+'</button>').join("") + '</div>';
+   + ["¿Qué es el EPM?","¿Cómo se calcula la calificación?","¿Qué hago si no está de acuerdo?","Ejemplo de meta SMART","Dame un ejemplo de conversación","¿Cómo motivo a un ingeniero?"].map(x=>'<button type="button" data-ask="'+x+'">'+x+'</button>').join("") + '</div>';
 }
 
 // ---- Búsqueda abierta en todo el contenido (sin IA, sin costo) ----
@@ -342,26 +391,27 @@ let LOCAL=null; const LTURNS=[];
 function offTopic(t){ return / (tarea|examen|finanz|inversion|innovacion|marketing|mercado|receta|futbol|mundial|chiste|pelicula|cancion|traduce|programa en|python) /.test(t) && !/ (epm|kpi|retroaliment|evaluacion del desempeno|colaborador|ingenier) /.test(t); }
 async function localAsk(text){
   const t=" "+norm(text)+" ";
-  if(offTopic(t) || /^ ([1-5]|siguiente|continuar|sigue|menu|temas|ayuda|opciones) $/.test(t)){ answer(text); return; }
+  if(/^ ([1-5]|siguiente|continuar|sigue|menu|tutorial|temas) $/.test(t)){ answer(text); return; }
   const r=search(text);
-  if(!r){ answer(text); return; }
-  const ctxP=topPassages(text,6);
+  const ctxP=r?topPassages(text,6):[];
   const sc=keys=>keys.reduce((a,k)=>a+(t.includes(norm(k))?norm(k).split(" ").length+1:0),0);
   let kb=null,kbs=0; [...FAQ,...TOPICS].forEach(x=>{ const v=sc(x.keys); if(v>kbs){kbs=v;kb=x;} });
-  const ctx=(kb?"- "+plain(kb.html).slice(0,900)+"\n":"")+ctxP.map(p=>"- ("+p.title+") "+plain(p.html)).join("\n");
-  const msg=addMsg("bot",'<p class="thinking">Pensando con IA local…</p>'); const bubble=msg.querySelector(".bubble");
+  const notes=(kb&&kbs>=2?"- "+plain(kb.html).slice(0,900)+"\n":"")+ctxP.map(p=>"- ("+p.title+") "+plain(p.html)).join("\n");
+  const msg=addMsg("bot",'<p class="thinking">Pensando…</p>'); const bubble=msg.querySelector(".bubble");
   setBusy(true);
   try{
-    const sys="Eres \"Coach EPM\", tutor de una actividad de Recursos Humanos: líderes de Anthropic que evalúan el desempeño del puesto Ingeniero/a de Software II con un sistema EPM y dan retroalimentación manejando el conflicto. Reglas: 1) Responde SOLO con lo que dicen las NOTAS; no agregues herramientas, empresas, ejemplos, cifras ni recomendaciones que no estén en las NOTAS. 2) Usa las NOTAS para dar una respuesta práctica y directa a la pregunta; sólo si NINGUNA nota se relaciona con la pregunta, dilo en una frase y sugiere el tema más cercano. 3) Español, tono de coach, máximo 100 palabras, viñetas cortas y **negritas** para lo clave. 4) No saludes ni uses encabezados como Líder: o Bienvenida.";
-    const hist=[];
-    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.15,max_tokens:300,repetition_penalty:1.1,
-      messages:[{role:"system",content:sys},...hist,{role:"user",content:"CONTEXTO:\n"+ctx+"\n\nPREGUNTA: "+text}]});
+    const sys="Eres \"Coach EPM\", un asistente de inteligencia artificial conversacional. Tu especialidad: recursos humanos, liderazgo, evaluación del desempeño, monitoreo electrónico del desempeño (EPM), KPIs, retroalimentación y manejo de conflictos; el caso del curso es Anthropic, donde líderes evalúan al puesto Ingeniero/a de Software II con un sistema EPM. Reglas: 1) Responde CUALQUIER pregunta con tus propias palabras, de forma completa, natural y útil, como un asistente de IA (puedes explicar, dar ejemplos, redactar, simular conversaciones, comparar o dar tu opinión fundamentada). 2) Si hay NOTAS DEL TUTORIAL y se relacionan con la pregunta, úsalas como fuente principal y respeta sus datos (metas, pesos, reglas de privacidad); no contradigas esos datos. 3) Si la pregunta no tiene que ver con el tutorial, respóndela igual con tu conocimiento general. 4) No inventes datos específicos de Anthropic que no estén en las notas. 5) Español claro, máximo 180 palabras, listas cortas y **negritas** cuando ayuden. No te presentes ni saludes en cada respuesta.";
+    const prev=LTURNS.slice(-2);
+    const user=(notes?"NOTAS DEL TUTORIAL:\n"+notes+"\n\n":"")+"PREGUNTA: "+text;
+    const chunks=await LOCAL.chat.completions.create({stream:true,temperature:0.5,max_tokens:420,repetition_penalty:1.12,
+      messages:[{role:"system",content:sys},...prev,{role:"user",content:user}]});
     let out="";
     for await(const c of chunks){ out+=c.choices[0]?.delta?.content||""; bubble.innerHTML=md(out); }
     const tb=[...new Set(ctxP.slice(0,3).map(p=>p.src))].filter(s=>TOPICS.includes(s)).slice(0,2);
-    bubble.innerHTML=md(out)+'<p class="note"><b>Según el tutorial:</b> '+ctxP.slice(0,2).map(p=>plain(p.html)).join(' · ')+'</p><div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver tema: '+s.n+'. '+s.label+'</button>').join("")+'</div>';
-    turns.push({role:"user",content:text},{role:"assistant",content:out}); LTURNS.push({role:"user",content:text},{role:"assistant",content:out});
-  }catch(e){ msg.remove(); answer(text); }
+    bubble.innerHTML=md(out)+(tb.length?'<div class="nav">'+tb.map(s=>'<button type="button" data-topic="'+s.id+'">Ver en el tutorial: '+s.label+'</button>').join("")+'</div>':'');
+    turns.push({role:"user",content:text},{role:"assistant",content:out});
+    LTURNS.push({role:"user",content:text},{role:"assistant",content:out.slice(0,400)});
+  }catch(e){ console.error(e); msg.remove(); answer(text); }
   finally{ setBusy(false); }
 }
 function search(text){
@@ -394,13 +444,12 @@ function answer(text){
   let best=null, bs=0, kind=null;
   FAQ.forEach(f=>{ const s=score(f.keys); if(s>bs){ bs=s; best=f; kind="faq"; } });
   TOPICS.forEach(x=>{ const s=score(x.keys); if(s>bs){ bs=s; best=x; kind="topic"; } });
-  if(/ (tarea|examen|finanz|inversion|innovacion|marketing|mercado|receta|futbol|mundial|chiste|clima del dia|pelicula|cancion|traduce|programa en|python) /.test(t) && !/ (epm|kpi|retroaliment|evaluacion del desempeno|colaborador|ingenier) /.test(t)){
-    addMsg("bot", menuHtml("Eso no es parte de esta actividad. Sólo puedo ayudarte con la evaluación del desempeño del Ingeniero/a de Software II con EPM, la entrevista de retroalimentación y el manejo del conflicto. Elige un tema o una pregunta:")); return; }
   const r = search(text);
   if(r && (bs<3 || (r.qlen>=4 && bs<5)) && !(kind==="faq" && bs>=3)){ addMsg("bot", searchHtml(r)); return; }
   if(kind==="topic"){ showTopic(best); return; }
   if(kind==="faq"){ addMsg("bot", best.html + navHtml(best.next)); return; }
-  addMsg("bot", menuHtml("Sólo puedo ayudarte con la evaluación del desempeño del Ingeniero/a de Software II con EPM, la entrevista de retroalimentación y el manejo del conflicto. Elige un tema o una pregunta:"));
+  const ai=document.getElementById("aibar");
+  addMsg("bot", menuHtml(ai && !ai.hidden && !LOCAL ? "Esa pregunta no está en mi banco de respuestas. <b>Toca «Activar IA local»</b> (abajo) y te respondo cualquier pregunta abierta. Mientras, puedes ver el tutorial o probar una de estas:" : "No encontré eso en mi banco de respuestas. Prueba con otras palabras o una de estas:"));
 }
 function fallback(text){ answer(text); }
 log.addEventListener("click", e=>{
@@ -449,7 +498,7 @@ function setMode(ai){
   const ab=document.getElementById("aiNote"); if(ab) ab.hidden = ai;
   document.getElementById("dot").classList.toggle("on", ai);
   document.getElementById("statusTxt").textContent = ai ? "IA activa" : "En línea";
-  hint.textContent = ai ? "Toca un tema o escribe tu pregunta sobre la evaluación; te responde la IA." : "Toca un tema o escribe tu pregunta sobre la evaluación, el EPM o la retroalimentación.";
+  hint.textContent = "Pregúntame lo que quieras con tus propias palabras; no hay comandos.";
 }
 
 showTopic(TOPICS[0], false);
